@@ -1,133 +1,127 @@
-# kubernetesRaspeberryPI
-Running k3s on raspberry pi
-Kubernetes on raspberry PI – Nginx proxy server installation
-1.	Any latest raspberry pi you get it available – I have used Raspberry PI 2 model 3 
+# Running K3s with Kubernetes on Raspberry Pi
 
-2.	Install the raspberry image https://www.raspberrypi.com/software/
- 
+This guide will help you set up K3s with Kubernetes and deploy an Nginx proxy server on a Raspberry Pi.
 
-3.	And install OS on the micro SD card which goes in to Adopter connected your laptop for this setup
- 
+## Prerequisites
 
-4.	Press CTRL+SHIFT+X to get in to WIFI connection settings
+- Raspberry Pi (tested on Raspberry Pi 3 Model B)
+- Micro SD card with Raspberry Pi OS installed
+- Internet access for the Raspberry Pi
+![image](https://github.com/user-attachments/assets/03d3b446-37cf-4e9c-a524-42ce7179ea0f)
 
-5.	After installation is successful , you can insert the Micro SD card to Raspberry PI H/w
+## Installation Steps
 
-6.	Now connect the raspberry pi to monitor or SSH once IP is know, ( Enable SSH ) , Use mouse to navigate to raspberry PI to setup further.
+1. **Download and Install Raspberry Pi OS**
+   - Download the Raspberry Pi OS image from [Raspberry Pi Downloads](https://www.raspberrypi.com/software/)
+   - Write the image to the Micro SD card and configure Wi-Fi settings.
+![image](https://github.com/user-attachments/assets/bfc7c095-77d6-433d-bc63-41926348f6a9)
 
-7.	Now assuming raspberry pI is up and have access to internet. Let start installing K3s Kubernetes 
+2. **Initial Setup**
+   - Insert the Micro SD card into the Raspberry Pi and connect it to a monitor or SSH into it.
+   - Ensure SSH is enabled and configure basic settings.
 
-8.	Check for Raspberry PI OS version and flavor installed
+3. **Install K3s Kubernetes**
+   - Check the Raspberry Pi OS version:
+     ```bash
+     uname -a
+     ```
+   - Enable cgroup parameters in `cmdline.txt`:
+     ```bash
+     sudo nano /boot/firmware/cmdline.txt
+     ```
+   - Restart the Raspberry Pi:
+     ```bash
+     sudo shutdown -r now
+     ```
+   - Enable IP forwarding in `/etc/sysctl.conf` and install `iptables`.
+   - Install K3s (replace `YOUR_STATIC_IP` with your Raspberry Pi's IP):
+     ```bash
+     curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --disable=traefik --flannel-backend=host-gw --tls-san=YOUR_STATIC_IP --bind-address=YOUR_STATIC_IP --advertise-address=YOUR_STATIC_IP --node-ip=YOUR_STATIC_IP --cluster-init" sh -
+     ```
+     ![image](https://github.com/user-attachments/assets/cf12a3d0-ee13-4e19-8d41-1b1e78ea52ac)
 
-raghu@raspberrypi:~ $ uname -a
-Linux raspberrypi 6.6.31+rpt-rpi-v7 #1 SMP Raspbian 1:6.6.31-1+rpt1 (2024-05-29) armv7l GNU/Linux
+   - Make `kubectl` accessible:
+     ```bash
+     sudo chmod 644 /etc/rancher/k3s/k3s.yaml
+     ```
 
-9.	Enable cgroup parameters in cmdline.txt to enable container namespace , this  is mandatory for Kubernetes to run
-raghu@raspberrypi:~ $ sudo nano /boot/firmware/cmdline.txt
+4. **Verify K3s Installation**
+   - Check if Kubernetes components are running:
+     ```bash
+     sudo kubectl get all
+     sudo kubectl get nodes
+     ```
 
-10.	Perform restart of raspberry , to make changes take affect
-Sudo shutdown -r now
-
-11.	Enable below 
-/etc/sysctl.conf
-net.ipv4.ip_forward=1
-net.ipv6.conf.all.forwarding=1
-
-12.	Perform restart of raspberry , to make changes take affect
-Sudo shutdown -r now
-13.	 Install iptables
-sudo apt-get install iptables
-
-14.	Perform restart of raspberry , to make changes take affect
-Sudo shutdown -r now
-
-15.	Install K3s note: Replace YOUR_STATIC_IP with raspberry pi IP, get it from “ifconfig” command.
-MASTER_IP=YOUR_STATIC_IP
-curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --disable=traefik --flannel-backend=host-gw --tls-san=192.168.1.85 --bind-address=192.168.1.85 --advertise-address=192.168.1.85 --node-ip=192.168.1.85 --cluster-init" sh -s -
- 
-
-16.	raghu@raspberrypi:~ $ sudo chmod 644 /etc/rancher/k3s/k3s.yaml
-
-17.	Check for installation is success
-raghu@raspberrypi:~ $ sudo kubectl get all
-NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-service/kubernetes   ClusterIP   10.43.0.1    <none>        443/TCP   89s
-raghu@raspberrypi:~ $
-raghu@raspberrypi:~ $ sudo kubectl get nodes
-NAME          STATUS   ROLES                  AGE     VERSION
-raspberrypi   Ready    control-plane,master   2m45s   v1.29.6+k3s2
-raghu@raspberrypi:~ $
-
-18.	Install GIT
-raghu@raspberrypi:~ $ sudo apt-get install git
-Reading package lists... Done
-Building dependency tree... Done
-Reading state information... Done
-git is already the newest version (1:2.39.2-1.1).
-0 upgraded, 0 newly installed, 0 to remove and 24 not upgraded.
-
-19.	Perform Git clone https://github.com/PacktPublishing/Edge-Computing-Systems-with-Kubernetes.git
-    
-raghu@raspberrypi:~ $ git clone https://github.com/PacktPublishing/Edge-Computing-Systems-with-Kubernetes.git
-Cloning into 'Edge-Computing-Systems-with-Kubernetes'...
-remote: Enumerating objects: 788, done.
-remote: Counting objects: 100% (96/96), done.
-remote: Compressing objects: 100% (57/57), done.
-remote: Total 788 (delta 54), reused 68 (delta 34), pack-reused 692
-Receiving objects: 100% (788/788), 17.16 MiB | 1.98 MiB/s, done.
-Resolving deltas: 100% (373/373), done.
-
-20.	 Below NGINIX yaml 
-apiVersion: v1
-	kind: Service
-	metadata:
-	  name: my-nginx-svc
-	  labels:
-	    app: nginx
-	spec:
-	  type: LoadBalancer
-	  ports:
-	  - port: 80
-	  selector:
-	    app: nginx
-	---
-	apiVersion: apps/v1
-	kind: Deployment
-	metadata:
-	  name: my-nginx
-	  labels:
-	    app: nginx
-	spec:
-	  replicas: 2
-	  selector:
-	    matchLabels:
-	      app: nginx
-	  template:
-	    metadata:
-	      labels:
-	        app: nginx
-	    spec:
-	      containers:
-	      - name: nginx
-	        image: nginx:1.14.2
-	        ports:
-	        - containerPort: 80
+5. **Install Git**
+   - Install Git (if not already installed):
+     ```bash
+     sudo apt-get install git
+     ```
 
 
-21.	Check for status if pod is runing
-raghu@raspberrypi:~/Edge-Computing-Systems-with-Kubernetes/ch10/yaml $ kubectl get pods
-NAME                        READY   STATUS    RESTARTS   AGE
-my-nginx-86dcfdf4c6-2nsk5   1/1     Running   0          3m18s
-my-nginx-86dcfdf4c6-dhhqd   1/1     Running   0          3m17s
+7. **Deploy Nginx with Kubernetes**
+   - Apply the Nginx deployment and service YAML:
+     ```yaml
+     apiVersion: v1
+     kind: Service
+     metadata:
+       name: my-nginx-svc
+       labels:
+         app: nginx
+     spec:
+       type: LoadBalancer
+       ports:
+       - port: 80
+         selector:
+           app: nginx
+     ---
+     apiVersion: apps/v1
+     kind: Deployment
+     metadata:
+       name: my-nginx
+       labels:
+         app: nginx
+     spec:
+       replicas: 2
+       selector:
+         matchLabels:
+           app: nginx
+       template:
+         metadata:
+           labels:
+             app: nginx
+         spec:
+           containers:
+           - name: nginx
+             image: nginx:1.14.2
+             ports:
+             - containerPort: 80
+     ```
+   - Apply the YAML configuration:
+     ```bash
+     kubectl apply -f Edge-Computing-Systems-with-Kubernetes/ch10/yaml/nginx.yaml
+     ```
 
-22.	Perform below cmd
-raghu@raspberrypi:~/Edge-Computing-Systems-with-Kubernetes/ch10/yaml $ kubectl get svc
-NAME           TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE
-kubernetes     ClusterIP      10.43.0.1      <none>        443/TCP        104m
-my-nginx-svc   LoadBalancer   10.43.172.36   <pending>     80:30372/TCP   50m
+8. **Verify Nginx Deployment**
+   - Check if Nginx pods are running:
+     ```bash
+     kubectl get pods
+     ```
 
-23.	Check if nginx server is running on port 80
-curl http://10.43.172.36:80
-raghu@raspberrypi:~/Edge-Computing-Systems-with-Kubernetes/ch10/yaml $ curl http://10.43.172.36:80
-<
- 
+   - Check the status of the Nginx service:
+     ```bash
+     kubectl get svc
+     ```
+
+   - Test if Nginx is accessible:
+     ```bash
+     curl http://LOCALIP:80
+     ```
+
+![image](https://github.com/user-attachments/assets/1e8c4354-c587-4b4d-a508-d449e2779a61)
+
+## Additional Information
+
+For troubleshooting, FAQs, or further customization, refer to the Kubernetes and K3s documentation.
+
+
