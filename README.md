@@ -2,6 +2,8 @@
 
 This guide will help you set up K3s with Kubernetes and deploy an Nginx proxy server on a Raspberry Pi.
 
+<img width="181" alt="image" src="https://github.com/user-attachments/assets/4065c71f-e41b-402e-b07e-43a469c558c3">
+
 ## Prerequisites
 
 - Raspberry Pi (tested on Raspberry Pi 3 Model B)
